@@ -1,4 +1,5 @@
 import collections
+import heapq
 
 ROWS = []
 COLUMNS = []
@@ -51,35 +52,51 @@ def init():
         print(SQUARES)
 
 
+def non_zero_matrix(M):
+    for row in M:
+        if 0 in row:
+            return False
+    return True
+
+
 def solve(M):
-    if DBG:
-        print(type(M))
-        print(M)
-    d = collections.deque()
+    whys = [[-1 for x in range(9)] for y in range(9)]
+    my_columns, my_rows, my_squares, zeroes_in_columns, zeroes_in_rows, zeroes_in_squares = recalculate_possibilities(M)
     for y in range(9):
         for x in range(9):
-            if M[y][x] == 0:
-                d.appendleft((y, x))
-    my_rows = [{M[y][x] for x in range(9)} - {0} for y in range(9)]
-    my_columns = [{M[y][x] for y in range(9)} - {0} for x in range(9)]
-    my_squares = [{M[y][x] for (y, x) in SQUARES[i]} - {0} for i in range(9)]
-    zeroes_in_rows = [{(y, x) for x in range(9) if M[y][x] == 0} for y in range(9)]
-    zeroes_in_columns = [{(y, x) for y in range(9) if M[y][x] == 0} for x in range(9)]
-    zeroes_in_squares = [{pos for pos in SQUARES[i] if M[pos[0]][pos[1]] == 0} for i
-                         in range(9)]
-    if DBG:
-        print(my_rows)
-    while d:
-        if DBG:
-            print(len(d))
-        y, x = d.pop()
-        if M[y][x] != 0:
+            if M[y][x] != 0:
+                whys[y][x] == 0
+    h = []
+    for y in range(9):
+        for x in range(9):
+            h.append((
+                    len(calculate_candidates(my_columns, my_rows, my_squares, x, y))
+                    , y, x
+                ))
+    heapq.heapify(h)
+    assumptions = []
+    s = list()
+    non_trivials = []
+    while True:
+        if s:
+            _, y, x = s.pop()
+        elif h:
+            _, y, x = heapq.heappop(h)
+            if M[y][x] != 0:
+                continue
+        else:
+            h = []
+            for x,y in non_trivials:
+                h.append((calculate_candidates(my_columns, my_rows, my_squares, x, y)
+                          , y
+                          , x))
+            heapq.heapify(h)
             continue
-        candidates = POSSIBLE ^ (my_rows[y] | my_columns[x]
-                                 | my_squares[FIND_MY_SQUARE[y][x]])
+        candidates = calculate_candidates(my_columns, my_rows, my_squares, x, y)
         if len(candidates) == 1:
             new_digit = candidates.pop()
-            M[y][x] == new_digit
+            M[y][x] = new_digit
+            whys[y][x] = len(assumptions)
             my_rows[y].add(new_digit)
             my_columns[x].add(new_digit)
             current_square = FIND_MY_SQUARE[y][x]
@@ -90,11 +107,30 @@ def solve(M):
             possibly_affected = zeroes_in_squares[current_square] \
                                  | zeroes_in_rows[y] \
                                  | zeroes_in_columns[x]
-            d.extend(possibly_affected)
+            s.extend([(_, b , c) for b, c in possibly_affected])
         else:
-            d.appendleft((y, x))
+            non_trivials.append((y, x))
+        if non_zero_matrix(M):
+            break
     print_matrix(M)
-    print()
+
+
+
+def calculate_candidates(my_columns, my_rows, my_squares, x, y):
+    return POSSIBLE ^ (my_rows[y] | my_columns[x]
+                       | my_squares[FIND_MY_SQUARE[y][x]])
+
+
+def recalculate_possibilities(M):
+    my_rows = [{M[y][x] for x in range(9)} - {0} for y in range(9)]
+    my_columns = [{M[y][x] for y in range(9)} - {0} for x in range(9)]
+    my_squares = [{M[y][x] for (y, x) in SQUARES[i]} - {0} for i in range(9)]
+    zeroes_in_rows = [{(y, x) for x in range(9) if M[y][x] == 0} for y in range(9)]
+    zeroes_in_columns = [{(y, x) for y in range(9) if M[y][x] == 0} for x in range(9)]
+    zeroes_in_squares = [{pos for pos in SQUARES[i] if M[pos[0]][pos[1]] == 0} for i
+                         in range(9)]
+    return my_columns, my_rows, my_squares, zeroes_in_columns, zeroes_in_rows, zeroes_in_squares
+
 
 def main():
     init()
