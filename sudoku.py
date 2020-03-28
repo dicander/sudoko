@@ -9,14 +9,17 @@ def read_matrix():
 def print_matrix(M):
     for row in M:
         print(" ".join((str(x) for x in row)))
+    print()
 
 
 def testio():
     M = []
     while M!= None:
-        print_matrix(M)
         M = read_matrix()
-        if input() == None:
+        print_matrix(M)
+        try:
+            input()
+        except:
             return
 
 
