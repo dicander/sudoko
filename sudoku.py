@@ -12,7 +12,7 @@ def print_matrix(M):
     print()
 
 
-def testio():
+def main():
     M = []
     while M!= None:
         M = read_matrix()
@@ -23,4 +23,4 @@ def testio():
             return
 
 
-testio()
+main()
